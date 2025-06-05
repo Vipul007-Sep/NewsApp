@@ -1,6 +1,6 @@
 import requests
 import time
-from datetime import datetime
+import os
 
 # Store seen article URLs
 seen_articles = set()
@@ -46,7 +46,7 @@ def get_news(api_key, keyword, language='en', page_size=100):
         print(response.json())
 
 if __name__ == '__main__':
-    api_key = 'aec54d822f854e34ab334df91c5b379d'
+    api_key = os.getenv('NEWS_API_KEY')
     keyword = input("Enter the keyword to search news for: ")
     
     while True:
