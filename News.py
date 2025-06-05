@@ -1,6 +1,7 @@
 import requests
 import time
 import os
+import json
 
 # Store seen article URLs
 seen_articles = set()
@@ -41,19 +42,40 @@ def get_news(api_key, keyword, language='en', page_size=100):
         print(f"Failed to fetch news. Status Code: {response.status_code}")
         print(response.json())
 
+def load_keywords():
+    f = open('keywords.json', 'r')
+    data = json.load(f)
+    return [k.strip() for k in data.get('keywords', []) if k.strip()]
+
+def save_keywords(keywords):
+    f=  open('keywords.json', 'w') 
+    json.dump({'keywords': keywords}, f, indent=2)
+
 if __name__ == '__main__':
     api_key = os.getenv('NEWS_API_KEY')
-    keywords_str = os.getenv('NEWS_KEYWORDS')
-
-    if not keywords_str:
-        print("NEWS_KEYWORDS environment variable is not set.")
-        exit(1)
-
-    keywords = [k.strip() for k in keywords_str.split(',') if k.strip()]
-
+    keywords = load_keywords()
     
-    while True:
+    if keywords:
+        
         for keyword in keywords:
             get_news(api_key, keyword)
-        print("Waiting for the next check...\n")
-        time.sleep(60) 
+    
+    while True:
+        
+        for keyword in keywords:
+            get_news(api_key, keyword)
+        userInput = input("Enter a keyword (or '0' to quit, Enter to skip): ").strip()
+        
+        if userInput == '0':
+            print("Thank you for using the News Fetcher. Goodbye!")
+            break
+
+        if userInput:
+                if userInput not in keywords:
+                    keywords.append(userInput)
+                    save_keywords(keywords)
+                    get_news(api_key, userInput)
+                else:
+                    print("Keyword already being tracked.")
+        
+        time.sleep(60)
