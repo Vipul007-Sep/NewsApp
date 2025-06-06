@@ -43,13 +43,16 @@ def get_news(api_key, keyword, language='en', page_size=100):
         print(response.json())
 
 def load_keywords():
-    f = open('keywords.json', 'r')
-    data = json.load(f)
-    return [k.strip() for k in data.get('keywords', []) if k.strip()]
-
-def save_keywords(keywords):
-    f=  open('keywords.json', 'w') 
-    json.dump({'keywords': keywords}, f, indent=2)
+    try:
+        f = open('keywords.json', 'r')
+        data = json.load(f)
+        return [k.strip() for k in data.get('keywords', []) if k.strip()]
+    except FileNotFoundError:
+        print("No keywords file found.")
+        return []
+    except json.JSONDecodeError:
+        print("Error decoding JSON from keywords file. Please check the format.")
+        return []
 
 if __name__ == '__main__':
     api_key = os.getenv('NEWS_API_KEY')
@@ -73,7 +76,6 @@ if __name__ == '__main__':
         if userInput:
                 if userInput not in keywords:
                     keywords.append(userInput)
-                    save_keywords(keywords)
                     get_news(api_key, userInput)
                 else:
                     print("Keyword already being tracked.")
