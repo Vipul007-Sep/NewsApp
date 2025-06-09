@@ -2,6 +2,16 @@ import requests
 import time
 import os
 import json
+from kafka import KafkaProducer
+
+KAFKA_BROKER = os.getenv('KAFKA_BROKER', 'kafka:9092')
+KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'news-articles')
+
+producer = KafkaProducer(
+    bootstrap_servers=KAFKA_BROKER,
+    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+    api_version=(3, 9)
+)
 
 # Store seen article URLs
 seen_articles = set()
@@ -31,13 +41,17 @@ def get_news(api_key, keyword, language='en', page_size=100):
             article_id = article['url']
             if article_id not in seen_articles:
                 seen_articles.add(article_id)
-                print(f"{i}. Title: {article['title']}")
-                print(f"   Published At: {article['publishedAt']}")
-                print(f"   Author: {article['author']}")
-                print(f"   Description: {article['description']}")
-                print(f"   URL: {article['url']}\n")
-                i += 1
+                payload = {
+                    'title': article['title'],
+                    'publishedAt': article['publishedAt'],
+                    'author': article['author'],
+                    'description': article['description'],
+                    'url': article['url'],
+                }
 
+                producer.send(KAFKA_TOPIC, value=payload)
+                i += 1
+        
     else:
         print(f"Failed to fetch news. Status Code: {response.status_code}")
         print(response.json())
