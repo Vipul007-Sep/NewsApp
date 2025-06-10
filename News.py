@@ -36,7 +36,6 @@ def get_news(api_key, keyword, language='en', page_size=100):
             print("No articles found for the keyword.")
             return
         
-        i = 1
         for article in articles:
             article_id = article['url']
             if article_id not in seen_articles:
@@ -50,7 +49,8 @@ def get_news(api_key, keyword, language='en', page_size=100):
                 }
 
                 producer.send(KAFKA_TOPIC, value=payload)
-                i += 1
+        
+        producer.flush()
         
     else:
         print(f"Failed to fetch news. Status Code: {response.status_code}")
@@ -80,18 +80,6 @@ if __name__ == '__main__':
     while True:
         
         for keyword in keywords:
-            get_news(api_key, keyword)
-        userInput = input("Enter a keyword (or '0' to quit, Enter to skip): ").strip()
-        
-        if userInput == '0':
-            print("Thank you for using the News Fetcher. Goodbye!")
-            break
-
-        if userInput:
-                if userInput not in keywords:
-                    keywords.append(userInput)
-                    get_news(api_key, userInput)
-                else:
-                    print("Keyword already being tracked.")
-        
+            get_news(api_key, keyword) 
+            
         time.sleep(60)
