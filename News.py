@@ -1,8 +1,9 @@
-import requests
 import time
 import os
 import json
 from kafka import KafkaProducer
+import asyncio
+import aiohttp
 
 KAFKA_BROKER = os.getenv('KAFKA_BROKER', 'kafka:9092')
 KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'news-articles')
@@ -13,73 +14,105 @@ producer = KafkaProducer(
     api_version=(3, 9)
 )
 
-# Store seen article URLs
 seen_articles = set()
 
-def get_news(api_key, keyword, language='en', page_size=100):
-    url = 'https://newsapi.org/v2/everything'
+async def get_news(api_key, keyword, language='en', page_size=100):
+    sources = [
+        {
+            'name': 'NewsApi1',
+            'enabled': os.getenv('NEWSAPI1_ENABLED', 'true').lower() == 'true',
+            'url': 'https://newsapi.org/v2/everything',
+            'params': {
+                'q': keyword,
+                'language': language,
+                'sortBy': 'publishedAt',
+                'pageSize': page_size,
+                'apiKey': api_key
+            }
+        },
+        {
+            'name': 'NewsApi2',
+            'enabled': os.getenv('NEWSAPI2_ENABLED', 'true').lower() == 'true',
+            'url': 'https://newsapi.org/v2/everything',
+            'params': {
+                'q': keyword,
+                'language': language,
+                'sortBy': 'publishedAt',
+                'pageSize': page_size,
+                'apiKey': api_key
+            }
+        },
+        {
+            'name': 'NewsApi3',
+            'enabled': os.getenv('NEWSAPI3_ENABLED', 'true').lower() == 'true',
+            'url': 'https://newsapi.org/v2/everything',
+            'params': {
+                'q': keyword,
+                'language': language,
+                'sortBy': 'publishedAt',
+                'pageSize': page_size,
+                'apiKey': api_key
+            }
+        }
+    ]
 
-    parameters = {
-        'q': keyword,
-        'language': language,
-        'sortBy': 'publishedAt',
-        'pageSize': page_size,
-        'apiKey': api_key
-    }
-    
-    response = requests.get(url, params=parameters)
+    async with aiohttp.ClientSession() as session:
+        async def fetch_source(source):
+            if not source['enabled']:
+                print(f"[INFO] {source['name']} is disabled via flag.")
+                return
 
-    if response.status_code == 200:
-        articles = response.json().get('articles', [])
+            try:
+                async with session.get(source['url'], params=source['params'], timeout=10) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        articles = data.get('articles', [])
+                        if not articles:
+                            print(f"[INFO] No articles from {source['name']} for keyword '{keyword}'.")
+                            return
 
-        if not articles:
-            print("No articles found for the keyword.")
-            return
-        
-        for article in articles:
-            article_id = article['url']
-            if article_id not in seen_articles:
-                seen_articles.add(article_id)
-                payload = {
-                    'title': article['title'],
-                    'publishedAt': article['publishedAt'],
-                    'author': article['author'],
-                    'description': article['description'],
-                    'url': article['url'],
-                }
+                        for article in articles:
+                            article_id = article.get('url')
+                            if article_id and article_id not in seen_articles:
+                                seen_articles.add(article_id)
+                                payload = {
+                                    'source': source['name'],
+                                    'title': article.get('title'),
+                                    'publishedAt': article.get('publishedAt'),
+                                    'author': article.get('author'),
+                                    'description': article.get('description'),
+                                    'url': article_id,
+                                }
+                                producer.send(KAFKA_TOPIC, value=payload)
+                        producer.flush()
+                    else:
+                        print(f"[ERROR] {source['name']} failed with status {resp.status}")
+            except Exception as e:
+                print(f"[EXCEPTION] {source['name']} threw an error: {e}")
 
-                producer.send(KAFKA_TOPIC, value=payload)
-        
-        producer.flush()
-        
-    else:
-        print(f"Failed to fetch news. Status Code: {response.status_code}")
-        print(response.json())
+        await asyncio.gather(*(fetch_source(src) for src in sources), return_exceptions=True)
 
 def load_keywords():
     try:
-        f = open('keywords.json', 'r')
-        data = json.load(f)
-        return [k.strip() for k in data.get('keywords', []) if k.strip()]
+        with open('keywords.json', 'r') as f:
+            data = json.load(f)
+            return [k.strip() for k in data.get('keywords', []) if k.strip()]
     except FileNotFoundError:
         print("No keywords file found.")
         return []
     except json.JSONDecodeError:
-        print("Error decoding JSON from keywords file. Please check the format.")
+        print("Error decoding keywords file.")
         return []
 
 if __name__ == '__main__':
     api_key = os.getenv('NEWS_API_KEY')
     keywords = load_keywords()
-    
+
     if keywords:
-        
         for keyword in keywords:
-            get_news(api_key, keyword)
-    
+            asyncio.run(get_news(api_key, keyword))
+
     while True:
-        
         for keyword in keywords:
-            get_news(api_key, keyword) 
-            
+            asyncio.run(get_news(api_key, keyword))
         time.sleep(60)
