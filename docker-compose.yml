@@ -23,11 +23,8 @@ services:
   producer:
     build:
       context: .
+    command: python News.py
     environment:
-      NEWS_API_KEY: aec54d822f854e34ab334df91c5b379d
-      NEWSAPI1_ENABLED: true
-      NEWSAPI2_ENABLED: false  
-      NEWSAPI3_ENABLED: true
       KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: news-articles
     depends_on:

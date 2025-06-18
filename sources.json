@@ -1,0 +1,20 @@
+[
+  {
+    "name": "NewsApi1",
+    "enabled": true,
+    "url": "https://newsapi.org/v2/everything",
+    "apiKey": "aec54d822f854e34ab334df91c5b379d"
+  },
+  {
+    "name": "NewsApi2",
+    "enabled": false,
+    "url": "https://newsapi.org/v2/everything",
+    "apiKey": "aec54d822f854e34ab334df91c5b379d"
+  },
+  {
+    "name": "NewsApi3",
+    "enabled": true,
+    "url": "https://newsapi.org/v2/everything",
+    "apiKey": "aec54d822f854e34ab334df91c5b379d"
+  }
+]
