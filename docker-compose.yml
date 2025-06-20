@@ -20,6 +20,18 @@ services:
     depends_on:
       - zookeeper
 
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: newsdb
+      POSTGRES_USER: newsuser
+      POSTGRES_PASSWORD: news123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
   producer:
     build:
       context: .
@@ -30,12 +42,41 @@ services:
     depends_on:
       - kafka
 
+  transformer:
+    build:
+      context: .
+    command: python News_Transformer.py
+    environment:
+      KAFKA_BROKER: kafka:9092
+      KAFKA_INPUT_TOPIC: news-articles
+      KAFKA_OUTPUT_TOPIC: news-transformed
+    depends_on:
+      - kafka
+      - producer
+
   consumer:
     build:
       context: .
     command: python News_Consumer.py
     environment:
       KAFKA_BROKER: kafka:9092
-      KAFKA_TOPIC: news-articles
+      KAFKA_TOPIC: news-transformed
     depends_on:
       - kafka
+      - transformer
+
+  db_consumer:
+    build:
+      context: .
+    command: python Db_Consumer.py
+    environment:
+      KAFKA_BROKER: kafka:9092
+      KAFKA_TOPIC: news-transformed
+    depends_on:
+      - kafka
+      - transformer
+      - postgres
+
+
+volumes:
+  pgdata:

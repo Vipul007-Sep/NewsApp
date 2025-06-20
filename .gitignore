@@ -1,0 +1,58 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+.Python
+
+# Environment variables
+.env
+*.env
+
+# pytest cache
+.pytest_cache/
+.cache/
+
+# MyPy & other tools
+.mypy_cache/
+.dmypy.json
+.pyre/
+
+# VS Code and other editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Database files
+*.db
+*.sqlite3
+
+# macOS and Windows specific
+.DS_Store
+Thumbs.db
+
+# System files
+*.bak
+*.swp
+*.tmp

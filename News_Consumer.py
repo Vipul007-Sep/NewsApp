@@ -6,7 +6,7 @@ time.sleep(15)
 
 
 KAFKA_BROKER = os.getenv('KAFKA_BROKER', 'kafka:9092')
-KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'news-articles')
+KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'news-transformed')
  
 while True:
     try:
@@ -25,8 +25,6 @@ while True:
 
 for article in consumer:
     article = article.value
-    print(f"Received article: {article['title']}")
-    print(f"Published at: {article['publishedAt']}")
-    print(f"Author: {article['author']}")
+    print(f"Title: {article['title']}")
     print(f"Description: {article['description']}")
-    print(f"URL: {article['url']}")
+    
