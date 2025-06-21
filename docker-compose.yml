@@ -23,8 +23,8 @@ services:
   producer:
     build:
       context: .
+    command: python News.py
     environment:
-      NEWS_API_KEY: aec54d822f854e34ab334df91c5b379d
       KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: news-articles
     depends_on:
