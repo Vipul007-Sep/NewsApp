@@ -1,8 +1,7 @@
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
-import News  
+from unittest.mock import patch, MagicMock, AsyncMock
 
-
+# Sample mock data
 sample_sources = [
     {
         "name": "NewsApi1",
@@ -12,7 +11,7 @@ sample_sources = [
     }
 ]
 
-sample_keywords = ["technology"]
+sample_keywords = ["ai"]
 
 sample_articles = [
     {
@@ -25,47 +24,43 @@ sample_articles = [
 ]
 
 @pytest.mark.asyncio
-@patch.object(News, "load_sources", return_value=sample_sources)
-@patch.object(News, "load_keywords", return_value=sample_keywords)
-@patch("News.create_client")
-@patch("News.producer")
-async def test_get_news_with_valid_sources_and_articles(
-    mock_producer, mock_create_client, mock_load_keywords, mock_load_sources
-):
-    expected_articles = sample_articles
-    mock_client = MagicMock()
-    mock_client.fetch = AsyncMock(return_value=sample_articles)
-    mock_create_client.return_value = mock_client
+async def test_get_news_logic():
+    import News
 
-    sent_payloads = []
+    with patch.object(News, "load_sources", return_value=sample_sources), \
+         patch.object(News, "load_keywords", return_value=sample_keywords), \
+         patch("News.create_client") as mock_create_client, \
+         patch("News.producer") as mock_producer:
 
-    def fake_send(topic, value):
-        sent_payloads.append(value)
+        mock_client = MagicMock()
+        mock_client.fetch = AsyncMock(return_value=sample_articles)
+        mock_create_client.return_value = mock_client
 
-    mock_producer.send.side_effect = fake_send
+        await News.get_news("ai")
 
-    await News.get_news("technology")
+        # Assertions
+        assert mock_client.fetch.call_count == 1
+        assert mock_producer.send.call_count == len(sample_articles)
+        assert mock_producer.flush.called is True
 
-    print("\nExpected Articles:")
-    for a in expected_articles:
-        print(a)
-    print("\nSent to Kafka:")
-    for p in sent_payloads:
-        print(p)
+        for call in mock_producer.send.call_args_list:
+            topic = call[0][0]
+            value = call[1]["value"]
+            assert topic == "news-articles"
+            assert isinstance(value["title"], str) and value["title"]
+            assert isinstance(value["publishedAt"], str) and value["publishedAt"]
+            assert isinstance(value["author"], str) and value["author"]
+            assert isinstance(value["description"], str) and value["description"]
+            assert isinstance(value["url"], str) and value["url"]
 
+def test_load_keywords_empty():
+    import News
+    with patch.object(News, "load_keywords", return_value=[]):
+        result = News.load_keywords()
+        assert result == []
 
-    assert mock_producer.send.called
-    assert mock_producer.flush.called
-    mock_client.fetch.assert_called_once()
-
-
-@patch.object(News, "load_keywords", return_value=[])
-def test_load_keywords_empty(mock_load_keywords):
-    result = News.load_keywords()
-    assert result == []
-
-
-@patch.object(News, "load_sources", return_value=[])
-def test_load_sources_empty(mock_load_sources):
-    result = News.load_sources()
-    assert result == []
+def test_load_sources_empty():
+    import News
+    with patch.object(News, "load_sources", return_value=[]):
+        result = News.load_sources()
+        assert result == []

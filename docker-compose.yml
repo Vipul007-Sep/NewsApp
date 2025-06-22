@@ -61,22 +61,16 @@ services:
     environment:
       KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: news-transformed
+      CONSUMER_MODE: print    # Change to "db" to store in Postgres
+      POSTGRES_DB: newsdb
+      POSTGRES_USER: newsuser
+      POSTGRES_PASSWORD: news123
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
     depends_on:
       - kafka
       - transformer
-
-  db_consumer:
-    build:
-      context: .
-    command: python Db_Consumer.py
-    environment:
-      KAFKA_BROKER: kafka:9092
-      KAFKA_TOPIC: news-transformed
-    depends_on:
-      - kafka
-      - transformer
-      - postgres
-
+      - postgres       
 
 volumes:
   pgdata:
