@@ -56,7 +56,7 @@ async def get_news(keyword, language='en', page_size=100):
 
             client = create_client(source)
 
-            async def fetch_and_send(client=client, source=source):  # capture vars in closure
+            async def fetch_and_send(client=client, source=source): 
                 articles = await client.fetch(session, keyword, language, page_size)
                 for article in articles:
                     article_id = article.get('url')
